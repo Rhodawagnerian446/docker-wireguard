@@ -46,6 +46,7 @@ jobs:
               --cap-add=SYS_MODULE \
               --device=/dev/net/tun \
               --sysctl net.ipv4.ip_forward=1 \
+              --sysctl net.ipv6.conf.all.forwarding=1 \
               vpn-test
           elif [ "$TEST_ID" = "no-env" ]; then
             docker run \
@@ -57,6 +58,7 @@ jobs:
               --cap-add=SYS_MODULE \
               --device=/dev/net/tun \
               --sysctl net.ipv4.ip_forward=1 \
+              --sysctl net.ipv6.conf.all.forwarding=1 \
               vpn-test
           fi
 

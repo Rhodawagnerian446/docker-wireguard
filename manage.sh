@@ -161,17 +161,23 @@ get_server_port() {
 
 write_client_conf() {
   local p="$1" priv="$2" psk="$3" octet="$4"
-  local server_pub server_endpoint server_port client_dns dns2
+  local server_pub server_endpoint server_port client_dns dns2 client_addr
   server_pub=$(get_server_pubkey)
   server_endpoint=$(get_server_endpoint)
   server_port=$(get_server_port)
   client_dns="${VPN_DNS_SRV1:-8.8.8.8}"
   dns2="${VPN_DNS_SRV2:-8.8.4.4}"
   client_dns="$client_dns, $dns2"
+  # Include IPv6 address if server is configured with IPv6
+  if grep -qs 'fddd:2c4:2c4:2c4::1' "$WG_CONF"; then
+    client_addr="10.7.0.$octet/24, fddd:2c4:2c4:2c4::$octet/64"
+  else
+    client_addr="10.7.0.$octet/24"
+  fi
   mkdir -p /etc/wireguard/clients
   cat > "/etc/wireguard/clients/${p}.conf" <<EOF
 [Interface]
-Address = 10.7.0.$octet/24
+Address = $client_addr
 DNS = $client_dns
 PrivateKey = $priv
 
@@ -186,13 +192,20 @@ EOF
 }
 
 do_add_client() {
-  local octet client_priv client_psk client_pub
+  local octet client_priv client_psk client_pub client_allowed_ips
   echo
   echo "Adding client '$client'..."
   octet=$(get_next_octet)
   client_priv=$(wg genkey)
   client_psk=$(wg genpsk)
   client_pub=$(printf '%s' "$client_priv" | wg pubkey)
+
+  # Set allowed IPs (include IPv6 if server is configured with IPv6)
+  if grep -qs 'fddd:2c4:2c4:2c4::1' "$WG_CONF"; then
+    client_allowed_ips="10.7.0.$octet/32, fddd:2c4:2c4:2c4::$octet/128"
+  else
+    client_allowed_ips="10.7.0.$octet/32"
+  fi
 
   # Append client block to server config
   cat >> "$WG_CONF" <<EOF
@@ -201,7 +214,7 @@ do_add_client() {
 [Peer]
 PublicKey = $client_pub
 PresharedKey = $client_psk
-AllowedIPs = 10.7.0.$octet/32
+AllowedIPs = $client_allowed_ips
 # END_CLIENT $client
 EOF
 
@@ -209,7 +222,7 @@ EOF
   if ip link show wg0 >/dev/null 2>&1; then
     wg set wg0 peer "$client_pub" \
       preshared-key <(printf '%s' "$client_psk") \
-      allowed-ips "10.7.0.$octet/32"
+      allowed-ips "$client_allowed_ips"
   fi
 
   # Write client config and show QR

@@ -28,6 +28,11 @@ check_ip() {
   printf '%s' "$1" | tr -d '\n' | grep -Eq "$IP_REGEX"
 }
 
+check_ip6() {
+  IP6_REGEX='^[0-9a-fA-F]{0,4}(:[0-9a-fA-F]{0,4}){1,7}$'
+  printf '%s' "$1" | tr -d '\n' | grep -Eq "$IP6_REGEX"
+}
+
 check_dns_name() {
   FQDN_REGEX='^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$'
   printf '%s' "$1" | tr -d '\n' | grep -Eq "$FQDN_REGEX"
@@ -69,6 +74,10 @@ VPN_DNS_SRV1=$(nospaces "$VPN_DNS_SRV1")
 VPN_DNS_SRV1=$(noquotes "$VPN_DNS_SRV1")
 VPN_DNS_SRV2=$(nospaces "$VPN_DNS_SRV2")
 VPN_DNS_SRV2=$(noquotes "$VPN_DNS_SRV2")
+if [ -n "$VPN_PUBLIC_IP6" ]; then
+  VPN_PUBLIC_IP6=$(nospaces "$VPN_PUBLIC_IP6")
+  VPN_PUBLIC_IP6=$(noquotes "$VPN_PUBLIC_IP6")
+fi
 
 # Apply defaults
 [ -z "$VPN_PORT" ]        && VPN_PORT=51820
@@ -129,6 +138,21 @@ else
   server_addr="$public_ip"
 fi
 
+# Detect IPv6
+ip6=""
+if [ -n "$VPN_PUBLIC_IP6" ]; then
+  ip6="$VPN_PUBLIC_IP6"
+  check_ip6 "$ip6" || { echo "Warning: Invalid IPv6 address in 'VPN_PUBLIC_IP6'. Detecting IPv6..." >&2; ip6=""; }
+fi
+if [ -z "$ip6" ]; then
+  ip6=$(ip -6 addr 2>/dev/null | awk '/inet6 [23]/ {print $2}' | cut -d'/' -f1 | head -n1)
+  check_ip6 "$ip6" || ip6=""
+  if [ -z "$ip6" ] && ip -6 addr 2>/dev/null | grep 'inet6' | grep -qv 'inet6 \(::1\|fe80\)'; then
+    ip6=$(wget -t 2 -T 10 -qO- https://ipv6.icanhazip.com 2>/dev/null)
+    check_ip6 "$ip6" || ip6=""
+  fi
+fi
+
 mkdir -p /etc/wireguard/clients
 
 WG_CONF="/etc/wireguard/wg0.conf"
@@ -150,11 +174,21 @@ if [ ! -f "$WG_CONF" ]; then
   echo "Port: UDP/$VPN_PORT"
   echo "First client: $VPN_CLIENT_NAME"
   echo "DNS for clients: $CLIENT_DNS"
+  if [ -n "$ip6" ]; then
+    echo "IPv6: enabled"
+  fi
   echo
 
   # Generate server keypair
   server_priv=$(wg genkey)
   server_pub=$(printf '%s' "$server_priv" | wg pubkey)
+
+  # Set server interface address (include IPv6 if available)
+  if [ -n "$ip6" ]; then
+    wg_server_addr="10.7.0.1/24, fddd:2c4:2c4:2c4::1/64"
+  else
+    wg_server_addr="10.7.0.1/24"
+  fi
 
   # Write server config
   cat > "$WG_CONF" <<EOF
@@ -163,7 +197,7 @@ if [ ! -f "$WG_CONF" ]; then
 # ENDPOINT $server_addr
 
 [Interface]
-Address = 10.7.0.1/24
+Address = $wg_server_addr
 PrivateKey = $server_priv
 ListenPort = $VPN_PORT
 
@@ -176,13 +210,22 @@ EOF
   client_pub=$(printf '%s' "$client_priv" | wg pubkey)
   client_octet=2
 
+  # Set client allowed IPs and interface address (include IPv6 if available)
+  if [ -n "$ip6" ]; then
+    client_allowed_ips="10.7.0.$client_octet/32, fddd:2c4:2c4:2c4::$client_octet/128"
+    client_iface_addr="10.7.0.$client_octet/24, fddd:2c4:2c4:2c4::$client_octet/64"
+  else
+    client_allowed_ips="10.7.0.$client_octet/32"
+    client_iface_addr="10.7.0.$client_octet/24"
+  fi
+
   # Append client block to server config
   cat >> "$WG_CONF" <<EOF
 # BEGIN_CLIENT $VPN_CLIENT_NAME
 [Peer]
 PublicKey = $client_pub
 PresharedKey = $client_psk
-AllowedIPs = 10.7.0.$client_octet/32
+AllowedIPs = $client_allowed_ips
 # END_CLIENT $VPN_CLIENT_NAME
 EOF
 
@@ -190,7 +233,7 @@ EOF
   mkdir -p /etc/wireguard/clients
   cat > "/etc/wireguard/clients/${VPN_CLIENT_NAME}.conf" <<EOF
 [Interface]
-Address = 10.7.0.$client_octet/24
+Address = $client_iface_addr
 DNS = $CLIENT_DNS
 PrivateKey = $client_priv
 
@@ -245,8 +288,11 @@ fi
 # Apply WireGuard configuration (strip Address line - handled separately)
 wg setconf wg0 <(grep -v '^Address ' "$WG_CONF")
 
-# Assign server VPN IP and bring up the interface
+# Assign server VPN IP addresses and bring up the interface
 ip address add 10.7.0.1/24 dev wg0
+if grep -q 'fddd:2c4:2c4:2c4::1' "$WG_CONF" 2>/dev/null; then
+  ip address add fddd:2c4:2c4:2c4::1/64 dev wg0
+fi
 ip link set wg0 up
 
 # Update sysctl settings
@@ -260,6 +306,9 @@ $syt net.ipv4.conf.default.send_redirects=0 2>/dev/null
 $syt net.ipv4.conf.default.rp_filter=0 2>/dev/null
 $syt "net.ipv4.conf.$NET_IFACE.send_redirects=0" 2>/dev/null
 $syt "net.ipv4.conf.$NET_IFACE.rp_filter=0" 2>/dev/null
+if [ -n "$ip6" ]; then
+  $syt net.ipv6.conf.all.forwarding=1 2>/dev/null
+fi
 
 # Set up iptables rules for NAT and forwarding
 modprobe -q ip_tables 2>/dev/null
@@ -268,6 +317,18 @@ if ! iptables -t nat -C POSTROUTING -s 10.7.0.0/24 -o "$NET_IFACE" -j MASQUERADE
   iptables -I INPUT -p udp --dport "$VPN_PORT" -j ACCEPT
   iptables -I FORWARD -s 10.7.0.0/24 -j ACCEPT
   iptables -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+fi
+
+if [ -n "$ip6" ] && grep -qs 'fddd:2c4:2c4:2c4::1' "$WG_CONF" 2>/dev/null; then
+  modprobe -q ip6_tables 2>/dev/null
+  if ip6tables -t nat -L >/dev/null 2>&1; then
+    if ! ip6tables -t nat -C POSTROUTING -s fddd:2c4:2c4:2c4::/64 \
+        -o "$NET_IFACE" -j MASQUERADE 2>/dev/null; then
+      ip6tables -t nat -A POSTROUTING -s fddd:2c4:2c4:2c4::/64 -o "$NET_IFACE" -j MASQUERADE
+      ip6tables -I FORWARD -s fddd:2c4:2c4:2c4::/64 -j ACCEPT
+      ip6tables -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+    fi
+  fi
 fi
 
 echo "WireGuard server started. Listening on UDP port $VPN_PORT."
@@ -281,6 +342,9 @@ cleanup() {
   iptables -D INPUT -p udp --dport "${VPN_PORT:-51820}" -j ACCEPT 2>/dev/null || true
   iptables -D FORWARD -s 10.7.0.0/24 -j ACCEPT 2>/dev/null || true
   iptables -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || true
+  ip6tables -t nat -D POSTROUTING -s fddd:2c4:2c4:2c4::/64 -o "$NET_IFACE" -j MASQUERADE 2>/dev/null || true
+  ip6tables -D FORWARD -s fddd:2c4:2c4:2c4::/64 -j ACCEPT 2>/dev/null || true
+  ip6tables -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || true
   exit 0
 }
 trap cleanup INT TERM
