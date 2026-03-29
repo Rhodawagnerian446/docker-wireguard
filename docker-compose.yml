@@ -1,0 +1,21 @@
+services:
+  wireguard:
+    image: hwdsl2/wireguard-server
+    container_name: wireguard
+    env_file:
+      - ./vpn.env
+    restart: always
+    ports:
+      - "51820:51820/udp"
+    volumes:
+      - wireguard-data:/etc/wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      - net.ipv4.ip_forward=1
+
+volumes:
+  wireguard-data:
