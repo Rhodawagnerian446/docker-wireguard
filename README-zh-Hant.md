@@ -10,12 +10,49 @@
 - 使用輔助腳本（`wg_manage`）進行客戶端管理
 - 首次啟動時在日誌中顯示 QR 碼，便於行動裝置快速設定
 - 支援核心 WireGuard（5.6+），並在不可用時自動退回至 `wireguard-go`（用戶空間實作）
+- 伺服器有公用 IPv6 位址時支援 IPv6（參見[要求](#ipv6-支援)）
 - 使用 Docker 卷實現資料持久化
 - 多架構支援：`linux/amd64`、`linux/arm64`、`linux/arm/v7`
 
 **另提供：** [OpenVPN server on Docker](https://github.com/hwdsl2/docker-openvpn/blob/main/README-zh-Hant.md) | [IPsec VPN server on Docker](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-zh-Hant.md)。
 
-## 需求
+## 快速開始
+
+**步驟 1.** 啟動 WireGuard 伺服器：
+
+```bash
+docker run \
+    --name wireguard \
+    --restart=always \
+    -v wireguard-data:/etc/wireguard \
+    -p 51820:51820/udp \
+    -d --cap-add=NET_ADMIN \
+    --cap-add=SYS_MODULE \
+    --device=/dev/net/tun \
+    --sysctl net.ipv4.ip_forward=1 \
+    --sysctl net.ipv6.conf.all.forwarding=1 \
+    hwdsl2/wireguard-server
+```
+
+首次啟動時，伺服器會自動產生金鑰、`wg0.conf` 以及名為 `client.conf` 的客戶端設定檔。同時還會在容器日誌中輸出 QR 碼，方便行動裝置快速設定。
+
+**步驟 2.** 查看容器日誌以取得客戶端 QR 碼：
+
+```bash
+docker logs wireguard
+```
+
+使用手機上的 WireGuard 應用程式掃描 QR 碼即可立即連線。
+
+**步驟 3.** （選用）將客戶端設定檔複製到本機：
+
+```bash
+docker cp wireguard:/etc/wireguard/clients/client.conf .
+```
+
+將 `client.conf` 匯入任意 WireGuard 客戶端即可連線。
+
+## 系統需求
 
 - 具有公用 IP 位址或 DNS 名稱的 Linux 伺服器
 - 已安裝 Docker
@@ -38,50 +75,6 @@ docker image tag quay.io/hwdsl2/wireguard-server hwdsl2/wireguard-server
 ```
 
 支援平台：`linux/amd64`、`linux/arm64` 和 `linux/arm/v7`。
-
-## 快速開始
-
-**步驟 1.** 啟動 WireGuard 伺服器：
-
-```bash
-docker run \
-    --name wireguard \
-    --restart=always \
-    -v wireguard-data:/etc/wireguard \
-    -p 51820:51820/udp \
-    -d --cap-add=NET_ADMIN \
-    --cap-add=SYS_MODULE \
-    --device=/dev/net/tun \
-    --sysctl net.ipv4.ip_forward=1 \
-    hwdsl2/wireguard-server
-```
-
-首次啟動時，伺服器會自動產生金鑰、`wg0.conf` 以及名為 `client.conf` 的客戶端設定檔。同時還會在容器日誌中輸出 QR 碼，方便行動裝置快速設定。
-
-**步驟 2.** 查看容器日誌以取得客戶端 QR 碼：
-
-```bash
-docker logs wireguard
-```
-
-使用手機上的 WireGuard 應用程式掃描 QR 碼即可立即連線。
-
-**步驟 3.** （選用）將客戶端設定檔複製到本機：
-
-```bash
-docker cp wireguard:/etc/wireguard/clients/client.conf .
-```
-
-將 `client.conf` 匯入任意 WireGuard 客戶端即可連線。
-
-## 使用 docker-compose
-
-```bash
-cp vpn.env.example vpn.env
-# 如需修改，請編輯 vpn.env，然後：
-docker compose up -d
-docker logs wireguard
-```
 
 ## 更新 Docker 映像檔
 
@@ -109,6 +102,7 @@ Status: Image is up to date for hwdsl2/wireguard-server:latest
 |---|---|---|
 | `VPN_DNS_NAME` | 伺服器的完整網域名稱 (FQDN) | 自動偵測公用 IP |
 | `VPN_PUBLIC_IP` | 伺服器的公用 IPv4 位址 | 自動偵測 |
+| `VPN_PUBLIC_IP6` | 伺服器的公用 IPv6 位址 | 自動偵測 |
 | `VPN_PORT` | WireGuard UDP 連接埠（1–65535） | `51820` |
 | `VPN_CLIENT_NAME` | 產生的第一個客戶端設定名稱 | `client` |
 | `VPN_DNS_SRV1` | 推送給客戶端的主要 DNS 伺服器 | `8.8.8.8` |
@@ -129,6 +123,7 @@ docker run \
     --cap-add=SYS_MODULE \
     --device=/dev/net/tun \
     --sysctl net.ipv4.ip_forward=1 \
+    --sysctl net.ipv6.conf.all.forwarding=1 \
     hwdsl2/wireguard-server
 ```
 
@@ -204,12 +199,41 @@ sudo modprobe wireguard
 
 備份 Docker 卷以保存伺服器金鑰和所有客戶端設定檔。
 
+## IPv6 支援
+
+如果 Docker 宿主機擁有公用（全域單播）IPv6 位址並且滿足以下要求，IPv6 支援將在容器啟動時自動啟用，無需手動設定。
+
+**要求：**
+- Docker 宿主機必須擁有可路由的全域單播 IPv6 位址（以 `2` 或 `3` 開頭）。連結本地位址（`fe80::/10`）不滿足要求。
+- 必須為 Docker 容器啟用 IPv6。參見[在 Docker 中啟用 IPv6 支援](https://docs.docker.com/engine/daemon/ipv6/)。
+
+要為 Docker 容器啟用 IPv6，首先在 Docker 宿主機上將以下內容新增至 `/etc/docker/daemon.json`，然後重新啟動 Docker：
+
+```json
+{
+  "ipv6": true,
+  "fixed-cidr-v6": "fddd:1::/64"
+}
+```
+
+然後重新建立容器。要驗證 IPv6 是否正常運作，請連線至 VPN，然後檢查你的 IPv6 位址，例如使用 [test-ipv6.com](https://test-ipv6.com)。
+
+## 使用 docker-compose
+
+```bash
+cp vpn.env.example vpn.env
+# 如需修改，請編輯 vpn.env，然後：
+docker compose up -d
+docker logs wireguard
+```
+
 ## 技術細節
 
 - 基礎映像檔：`alpine:3.23`
 - WireGuard：來自 Alpine 套件的最新 `wireguard-tools`
 - 用戶空間退回方案：來自 Alpine 套件的 `wireguard-go`
 - VPN 子網路：`10.7.0.0/24`（伺服器：`10.7.0.1`，客戶端：`10.7.0.2`+）
+- IPv6 VPN 子網路：`fddd:2c4:2c4:2c4::/64`（伺服器有 IPv6 時啟用）
 - 預共用金鑰：為每個客戶端產生，提供額外的後量子抵抗性
 - 預設 keepalive：25 秒（確保行動客戶端的 NAT 穿透）
 - 加密演算法：ChaCha20-Poly1305（WireGuard 預設，不可設定）

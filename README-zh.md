@@ -10,12 +10,49 @@
 - 使用辅助脚本（`wg_manage`）进行客户端管理
 - 首次启动时在日志中显示二维码，便于移动设备快速配置
 - 支持内核 WireGuard（5.6+），并在不可用时自动回退到 `wireguard-go`（用户态实现）
+- 服务器有公网 IPv6 地址时支持 IPv6（参见[要求](#ipv6-支持)）
 - 使用 Docker 卷实现数据持久化
 - 多架构支持：`linux/amd64`、`linux/arm64`、`linux/arm/v7`
 
 **另提供：** [OpenVPN server on Docker](https://github.com/hwdsl2/docker-openvpn/blob/main/README-zh.md) | [IPsec VPN server on Docker](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-zh.md)。
 
-## 要求
+## 快速开始
+
+**步骤 1.** 启动 WireGuard 服务器：
+
+```bash
+docker run \
+    --name wireguard \
+    --restart=always \
+    -v wireguard-data:/etc/wireguard \
+    -p 51820:51820/udp \
+    -d --cap-add=NET_ADMIN \
+    --cap-add=SYS_MODULE \
+    --device=/dev/net/tun \
+    --sysctl net.ipv4.ip_forward=1 \
+    --sysctl net.ipv6.conf.all.forwarding=1 \
+    hwdsl2/wireguard-server
+```
+
+首次启动时，服务器会自动生成密钥、`wg0.conf` 以及名为 `client.conf` 的客户端配置文件。同时还会在容器日志中输出二维码，方便移动设备快速配置。
+
+**步骤 2.** 查看容器日志以获取客户端二维码：
+
+```bash
+docker logs wireguard
+```
+
+使用手机上的 WireGuard 应用扫描二维码即可立即连接。
+
+**步骤 3.** （可选）将客户端配置文件复制到本机：
+
+```bash
+docker cp wireguard:/etc/wireguard/clients/client.conf .
+```
+
+将 `client.conf` 导入任意 WireGuard 客户端即可连接。
+
+## 系统要求
 
 - 具有公网 IP 地址或 DNS 名称的 Linux 服务器
 - 已安装 Docker
@@ -38,50 +75,6 @@ docker image tag quay.io/hwdsl2/wireguard-server hwdsl2/wireguard-server
 ```
 
 支持平台：`linux/amd64`、`linux/arm64` 和 `linux/arm/v7`。
-
-## 快速开始
-
-**步骤 1.** 启动 WireGuard 服务器：
-
-```bash
-docker run \
-    --name wireguard \
-    --restart=always \
-    -v wireguard-data:/etc/wireguard \
-    -p 51820:51820/udp \
-    -d --cap-add=NET_ADMIN \
-    --cap-add=SYS_MODULE \
-    --device=/dev/net/tun \
-    --sysctl net.ipv4.ip_forward=1 \
-    hwdsl2/wireguard-server
-```
-
-首次启动时，服务器会自动生成密钥、`wg0.conf` 以及名为 `client.conf` 的客户端配置文件。同时还会在容器日志中输出二维码，方便移动设备快速配置。
-
-**步骤 2.** 查看容器日志以获取客户端二维码：
-
-```bash
-docker logs wireguard
-```
-
-使用手机上的 WireGuard 应用扫描二维码即可立即连接。
-
-**步骤 3.** （可选）将客户端配置文件复制到本机：
-
-```bash
-docker cp wireguard:/etc/wireguard/clients/client.conf .
-```
-
-将 `client.conf` 导入任意 WireGuard 客户端即可连接。
-
-## 使用 docker-compose
-
-```bash
-cp vpn.env.example vpn.env
-# 如需修改，请编辑 vpn.env，然后：
-docker compose up -d
-docker logs wireguard
-```
 
 ## 更新 Docker 镜像
 
@@ -109,6 +102,7 @@ Status: Image is up to date for hwdsl2/wireguard-server:latest
 |---|---|---|
 | `VPN_DNS_NAME` | 服务器的完全限定域名 (FQDN) | 自动检测公网 IP |
 | `VPN_PUBLIC_IP` | 服务器的公网 IPv4 地址 | 自动检测 |
+| `VPN_PUBLIC_IP6` | 服务器的公网 IPv6 地址 | 自动检测 |
 | `VPN_PORT` | WireGuard UDP 端口（1–65535） | `51820` |
 | `VPN_CLIENT_NAME` | 生成的第一个客户端配置名称 | `client` |
 | `VPN_DNS_SRV1` | 推送给客户端的主 DNS 服务器 | `8.8.8.8` |
@@ -129,6 +123,7 @@ docker run \
     --cap-add=SYS_MODULE \
     --device=/dev/net/tun \
     --sysctl net.ipv4.ip_forward=1 \
+    --sysctl net.ipv6.conf.all.forwarding=1 \
     hwdsl2/wireguard-server
 ```
 
@@ -204,17 +199,46 @@ sudo modprobe wireguard
 
 备份 Docker 卷以保存服务器密钥和所有客户端配置。
 
+## IPv6 支持
+
+如果 Docker 宿主机拥有公共（全局单播）IPv6 地址并且满足以下要求，IPv6 支持将在容器启动时自动启用，无需手动配置。
+
+**要求：**
+- Docker 宿主机必须拥有可路由的全局单播 IPv6 地址（以 `2` 或 `3` 开头）。链路本地地址（`fe80::/10`）不满足要求。
+- 必须为 Docker 容器启用 IPv6。参见[在 Docker 中启用 IPv6 支持](https://docs.docker.com/engine/daemon/ipv6/)。
+
+要为 Docker 容器启用 IPv6，首先在 Docker 宿主机上将以下内容添加到 `/etc/docker/daemon.json`，然后重启 Docker：
+
+```json
+{
+  "ipv6": true,
+  "fixed-cidr-v6": "fddd:1::/64"
+}
+```
+
+然后重新创建容器。要验证 IPv6 是否正常工作，请连接到 VPN，然后检查你的 IPv6 地址，例如使用 [test-ipv6.com](https://test-ipv6.com)。
+
+## 使用 docker-compose
+
+```bash
+cp vpn.env.example vpn.env
+# 如需修改，请编辑 vpn.env，然后：
+docker compose up -d
+docker logs wireguard
+```
+
 ## 技术细节
 
 - 基础镜像：`alpine:3.23`
 - WireGuard：来自 Alpine 软件包的最新 `wireguard-tools`
 - 用户态回退：来自 Alpine 软件包的 `wireguard-go`
 - VPN 子网：`10.7.0.0/24`（服务器：`10.7.0.1`，客户端：`10.7.0.2`+）
+- IPv6 VPN 子网：`fddd:2c4:2c4:2c4::/64`（服务器有 IPv6 时启用）
 - 预共享密钥：为每个客户端生成，提供额外的后量子抵抗性
 - 默认 keepalive：25 秒（确保移动客户端的 NAT 穿透）
 - 加密算法：ChaCha20-Poly1305（WireGuard 默认，不可配置）
 
-## 许可证
+## 授权协议
 
 **注：** 预构建镜像中的软件组件（如 WireGuard 工具和 wireguard-go）遵循各自版权持有者所选择的相应许可证。对于任何预构建镜像的使用，镜像用户有责任确保其使用符合镜像中所包含的所有软件的相关许可证。
 

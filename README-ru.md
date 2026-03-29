@@ -10,10 +10,47 @@ Docker-образ для запуска сервера WireGuard VPN. Основ
 - Управление клиентами через вспомогательный скрипт (`wg_manage`)
 - QR-код отображается при первом запуске для быстрой настройки мобильных устройств
 - Поддержка ядрового WireGuard (5.6+) с автоматическим переключением на `wireguard-go` (пользовательское пространство)
+- Поддержка IPv6 при наличии публичного IPv6-адреса на сервере (см. [требования](#поддержка-ipv6))
 - Постоянное хранение данных через Docker volume
 - Поддержка нескольких архитектур: `linux/amd64`, `linux/arm64`, `linux/arm/v7`
 
 **Также доступно:** [Сервер OpenVPN на Docker](https://github.com/hwdsl2/docker-openvpn/blob/main/README-ru.md) | [Сервер IPsec VPN на Docker](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-ru.md).
+
+## Быстрый старт
+
+**Шаг 1.** Запустите сервер WireGuard:
+
+```bash
+docker run \
+    --name wireguard \
+    --restart=always \
+    -v wireguard-data:/etc/wireguard \
+    -p 51820:51820/udp \
+    -d --cap-add=NET_ADMIN \
+    --cap-add=SYS_MODULE \
+    --device=/dev/net/tun \
+    --sysctl net.ipv4.ip_forward=1 \
+    --sysctl net.ipv6.conf.all.forwarding=1 \
+    hwdsl2/wireguard-server
+```
+
+При первом запуске сервер автоматически генерирует ключи сервера, файл `wg0.conf` и конфигурацию клиента с именем `client.conf`. В логи контейнера также выводится QR-код для быстрой настройки мобильных устройств.
+
+**Шаг 2.** Просмотрите логи контейнера, чтобы получить QR-код клиента:
+
+```bash
+docker logs wireguard
+```
+
+Отсканируйте QR-код приложением WireGuard на телефоне для мгновенного подключения.
+
+**Шаг 3.** По желанию, скопируйте конфигурацию клиента на локальную машину:
+
+```bash
+docker cp wireguard:/etc/wireguard/clients/client.conf .
+```
+
+Импортируйте `client.conf` в любой клиент WireGuard для подключения.
 
 ## Требования
 
@@ -38,50 +75,6 @@ docker image tag quay.io/hwdsl2/wireguard-server hwdsl2/wireguard-server
 ```
 
 Поддерживаемые платформы: `linux/amd64`, `linux/arm64` и `linux/arm/v7`.
-
-## Быстрый старт
-
-**Шаг 1.** Запустите сервер WireGuard:
-
-```bash
-docker run \
-    --name wireguard \
-    --restart=always \
-    -v wireguard-data:/etc/wireguard \
-    -p 51820:51820/udp \
-    -d --cap-add=NET_ADMIN \
-    --cap-add=SYS_MODULE \
-    --device=/dev/net/tun \
-    --sysctl net.ipv4.ip_forward=1 \
-    hwdsl2/wireguard-server
-```
-
-При первом запуске сервер автоматически генерирует ключи сервера, файл `wg0.conf` и конфигурацию клиента с именем `client.conf`. В логи контейнера также выводится QR-код для быстрой настройки мобильных устройств.
-
-**Шаг 2.** Просмотрите логи контейнера, чтобы получить QR-код клиента:
-
-```bash
-docker logs wireguard
-```
-
-Отсканируйте QR-код приложением WireGuard на телефоне для мгновенного подключения.
-
-**Шаг 3.** По желанию, скопируйте конфигурацию клиента на локальную машину:
-
-```bash
-docker cp wireguard:/etc/wireguard/clients/client.conf .
-```
-
-Импортируйте `client.conf` в любой клиент WireGuard для подключения.
-
-## Использование docker-compose
-
-```bash
-cp vpn.env.example vpn.env
-# При необходимости отредактируйте vpn.env, затем:
-docker compose up -d
-docker logs wireguard
-```
 
 ## Обновление Docker-образа
 
@@ -109,6 +102,7 @@ Status: Image is up to date for hwdsl2/wireguard-server:latest
 |---|---|---|
 | `VPN_DNS_NAME` | Полное доменное имя (FQDN) сервера | Автоопределение публичного IP |
 | `VPN_PUBLIC_IP` | Публичный IPv4-адрес сервера | Автоопределение |
+| `VPN_PUBLIC_IP6` | Публичный IPv6-адрес сервера | Автоопределение |
 | `VPN_PORT` | UDP-порт WireGuard (1–65535) | `51820` |
 | `VPN_CLIENT_NAME` | Имя первого сгенерированного конфига клиента | `client` |
 | `VPN_DNS_SRV1` | Основной DNS-сервер, передаваемый клиентам | `8.8.8.8` |
@@ -129,6 +123,7 @@ docker run \
     --cap-add=SYS_MODULE \
     --device=/dev/net/tun \
     --sysctl net.ipv4.ip_forward=1 \
+    --sysctl net.ipv6.conf.all.forwarding=1 \
     hwdsl2/wireguard-server
 ```
 
@@ -204,12 +199,41 @@ sudo modprobe wireguard
 
 Сделайте резервную копию Docker volume для сохранения ключей сервера и всех конфигураций клиентов.
 
+## Поддержка IPv6
+
+Если Docker-хост имеет публичный (глобальный одноадресный) IPv6-адрес и выполнены приведённые ниже требования, поддержка IPv6 автоматически включается при запуске контейнера. Никакой дополнительной настройки не требуется.
+
+**Требования:**
+- Docker-хост должен иметь маршрутизируемый глобальный одноадресный IPv6-адрес (начинающийся с `2` или `3`). Локальные адреса канала (`fe80::/10`) не подходят.
+- Для Docker-контейнера должна быть включена поддержка IPv6. См. [Enable IPv6 support in Docker](https://docs.docker.com/engine/daemon/ipv6/).
+
+Чтобы включить IPv6 для Docker-контейнера, сначала включите IPv6 в демоне Docker, добавив следующее в файл `/etc/docker/daemon.json` на Docker-хосте, затем перезапустите Docker:
+
+```json
+{
+  "ipv6": true,
+  "fixed-cidr-v6": "fddd:1::/64"
+}
+```
+
+После этого пересоздайте Docker-контейнер. Чтобы проверить работу IPv6, подключитесь к VPN и проверьте ваш IPv6-адрес, например, с помощью [test-ipv6.com](https://test-ipv6.com).
+
+## Использование docker-compose
+
+```bash
+cp vpn.env.example vpn.env
+# При необходимости отредактируйте vpn.env, затем:
+docker compose up -d
+docker logs wireguard
+```
+
 ## Технические детали
 
 - Базовый образ: `alpine:3.23`
 - WireGuard: последняя версия `wireguard-tools` из пакетов Alpine
 - Резервный вариант в пользовательском пространстве: `wireguard-go` из пакетов Alpine
 - Подсеть VPN: `10.7.0.0/24` (сервер: `10.7.0.1`, клиенты: `10.7.0.2`+)
+- Подсеть VPN IPv6: `fddd:2c4:2c4:2c4::/64` (при наличии IPv6 на сервере)
 - Предварительно общие ключи: генерируются для каждого клиента для дополнительной постквантовой защиты
 - Keepalive по умолчанию: 25 секунд (обеспечивает NAT traversal для мобильных клиентов)
 - Шифр: ChaCha20-Poly1305 (стандарт WireGuard, не настраивается)
