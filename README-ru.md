@@ -1,0 +1,224 @@
+[English](README.md) | [简体中文](README-zh.md) | [繁體中文](README-zh-Hant.md) | [Русский](README-ru.md)
+
+# Сервер WireGuard VPN на Docker
+
+[![Build Status](https://github.com/hwdsl2/docker-wireguard/actions/workflows/main.yml/badge.svg)](https://github.com/hwdsl2/docker-wireguard/actions/workflows/main.yml)
+
+Docker-образ для запуска сервера WireGuard VPN. Основан на Alpine Linux с WireGuard. Разработан как простой, современный и легко поддерживаемый.
+
+- Автоматическая генерация ключей сервера и конфигурации клиента при первом запуске
+- Управление клиентами через вспомогательный скрипт (`wg_manage`)
+- QR-код отображается при первом запуске для быстрой настройки мобильных устройств
+- Поддержка ядрового WireGuard (5.6+) с автоматическим переключением на `wireguard-go` (пользовательское пространство)
+- Постоянное хранение данных через Docker volume
+- Поддержка нескольких архитектур: `linux/amd64`, `linux/arm64`, `linux/arm/v7`
+
+**Также доступно:** [Сервер OpenVPN на Docker](https://github.com/hwdsl2/docker-openvpn/blob/main/README-ru.md) | [Сервер IPsec VPN на Docker](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-ru.md).
+
+## Требования
+
+- Linux-сервер с публичным IP-адресом или DNS-именем
+- Установленный Docker
+- Открытый в файрволе UDP-порт WireGuard (по умолчанию UDP 51820, или настроенный порт)
+- Ядро хоста 5.6+ с поддержкой WireGuard (рекомендуется), **или** используйте встроенный резервный вариант `wireguard-go` (работает на любом ядре)
+
+## Загрузка
+
+Получите образ из [реестра Docker Hub](https://hub.docker.com/r/hwdsl2/wireguard-server/):
+
+```bash
+docker pull hwdsl2/wireguard-server
+```
+
+Либо загрузите из [Quay.io](https://quay.io/repository/hwdsl2/wireguard-server):
+
+```bash
+docker pull quay.io/hwdsl2/wireguard-server
+docker image tag quay.io/hwdsl2/wireguard-server hwdsl2/wireguard-server
+```
+
+Поддерживаемые платформы: `linux/amd64`, `linux/arm64` и `linux/arm/v7`.
+
+## Быстрый старт
+
+**Шаг 1.** Запустите сервер WireGuard:
+
+```bash
+docker run \
+    --name wireguard \
+    --restart=always \
+    -v wireguard-data:/etc/wireguard \
+    -p 51820:51820/udp \
+    -d --cap-add=NET_ADMIN \
+    --cap-add=SYS_MODULE \
+    --device=/dev/net/tun \
+    --sysctl net.ipv4.ip_forward=1 \
+    hwdsl2/wireguard-server
+```
+
+При первом запуске сервер автоматически генерирует ключи сервера, файл `wg0.conf` и конфигурацию клиента с именем `client.conf`. В логи контейнера также выводится QR-код для быстрой настройки мобильных устройств.
+
+**Шаг 2.** Просмотрите логи контейнера, чтобы получить QR-код клиента:
+
+```bash
+docker logs wireguard
+```
+
+Отсканируйте QR-код приложением WireGuard на телефоне для мгновенного подключения.
+
+**Шаг 3.** По желанию, скопируйте конфигурацию клиента на локальную машину:
+
+```bash
+docker cp wireguard:/etc/wireguard/clients/client.conf .
+```
+
+Импортируйте `client.conf` в любой клиент WireGuard для подключения.
+
+## Использование docker-compose
+
+```bash
+cp vpn.env.example vpn.env
+# При необходимости отредактируйте vpn.env, затем:
+docker compose up -d
+docker logs wireguard
+```
+
+## Обновление Docker-образа
+
+Для обновления Docker-образа и контейнера сначала [загрузите](#загрузка) последнюю версию:
+
+```bash
+docker pull hwdsl2/wireguard-server
+```
+
+Если Docker-образ уже актуален, вы увидите:
+
+```
+Status: Image is up to date for hwdsl2/wireguard-server:latest
+```
+
+В противном случае будет загружена последняя версия. Удалите и пересоздайте контейнер, следуя инструкциям из раздела [Быстрый старт](#быстрый-старт). Ваши данные сохранены в volume `wireguard-data`.
+
+## Переменные окружения
+
+Все переменные необязательны. Если не заданы, автоматически используются безопасные значения по умолчанию.
+
+Этот Docker-образ использует следующие переменные, которые можно задать в файле `env` (см. [пример](vpn.env.example)):
+
+| Переменная | Описание | Значение по умолчанию |
+|---|---|---|
+| `VPN_DNS_NAME` | Полное доменное имя (FQDN) сервера | Автоопределение публичного IP |
+| `VPN_PUBLIC_IP` | Публичный IPv4-адрес сервера | Автоопределение |
+| `VPN_PORT` | UDP-порт WireGuard (1–65535) | `51820` |
+| `VPN_CLIENT_NAME` | Имя первого сгенерированного конфига клиента | `client` |
+| `VPN_DNS_SRV1` | Основной DNS-сервер, передаваемый клиентам | `8.8.8.8` |
+| `VPN_DNS_SRV2` | Резервный DNS-сервер, передаваемый клиентам | `8.8.4.4` |
+
+**Примечание:** В файле `env` НЕ заключайте значения в `""` или `''` и не добавляйте пробелы вокруг `=`. Если вы изменили `VPN_PORT`, соответственно обновите флаг `-p` в команде `docker run`.
+
+Пример использования файла `env`:
+
+```bash
+docker run \
+    --name wireguard \
+    --env-file ./vpn.env \
+    --restart=always \
+    -v wireguard-data:/etc/wireguard \
+    -p 51820:51820/udp \
+    -d --cap-add=NET_ADMIN \
+    --cap-add=SYS_MODULE \
+    --device=/dev/net/tun \
+    --sysctl net.ipv4.ip_forward=1 \
+    hwdsl2/wireguard-server
+```
+
+## Управление клиентами
+
+Используйте `docker exec` для управления клиентами с помощью вспомогательного скрипта `wg_manage`.
+
+**Добавить нового клиента:**
+
+```bash
+docker exec wireguard wg_manage --addclient alice
+docker cp wireguard:/etc/wireguard/clients/alice.conf .
+```
+
+**Показать QR-код клиента** (например, после перезапуска):
+
+```bash
+docker exec wireguard wg_manage --showclientqr alice
+```
+
+**Экспортировать конфигурацию клиента** (выводится в stdout):
+
+```bash
+docker exec wireguard wg_manage --showclientcfg alice > alice.conf
+```
+
+**Список клиентов:**
+
+```bash
+docker exec wireguard wg_manage --listclients
+```
+
+**Удалить клиента** (будет запрошено подтверждение):
+
+```bash
+docker exec -it wireguard wg_manage --removeclient alice
+# Или удалить без запроса подтверждения:
+docker exec wireguard wg_manage --removeclient alice -y
+```
+
+## Модуль ядра и пользовательское пространство
+
+Этот образ поддерживает два бэкенда WireGuard, которые выбираются автоматически при запуске:
+
+1. **Модуль ядра** (предпочтительно) — доступен на ядре Linux 5.6+ (Ubuntu 20.04+, Debian 11+ и большинстве современных дистрибутивов). Обеспечивает наилучшую производительность.
+
+2. **`wireguard-go` в пользовательском пространстве** (автоматический резерв) — используется, когда модуль ядра недоступен. Работает на любом ядре хоста. Производительность несколько ниже, но полностью функционален.
+
+При активном `wireguard-go` в логи контейнера выводится соответствующее сообщение. Дополнительная настройка не требуется — переключение прозрачно.
+
+Чтобы использовать модуль ядра, убедитесь, что он доступен на хосте:
+
+```bash
+# Проверить, загружен ли модуль на хосте
+lsmod | grep wireguard
+# Загрузить при необходимости
+sudo modprobe wireguard
+```
+
+Флаг `--cap-add=SYS_MODULE` в команде `docker run` позволяет контейнеру загружать модуль ядра. Если модуль уже загружен на хосте, `SYS_MODULE` строго не требуется.
+
+## Постоянные данные
+
+Все данные сервера и клиентов хранятся в Docker volume (`/etc/wireguard` внутри контейнера):
+
+```
+/etc/wireguard/
+├── wg0.conf            # Конфигурация сервера WireGuard (интерфейс + все клиенты)
+└── clients/
+    ├── client.conf     # Конфигурация первого клиента
+    └── alice.conf      # Дополнительные клиенты
+```
+
+Сделайте резервную копию Docker volume для сохранения ключей сервера и всех конфигураций клиентов.
+
+## Технические детали
+
+- Базовый образ: `alpine:3.23`
+- WireGuard: последняя версия `wireguard-tools` из пакетов Alpine
+- Резервный вариант в пользовательском пространстве: `wireguard-go` из пакетов Alpine
+- Подсеть VPN: `10.7.0.0/24` (сервер: `10.7.0.1`, клиенты: `10.7.0.2`+)
+- Предварительно общие ключи: генерируются для каждого клиента для дополнительной постквантовой защиты
+- Keepalive по умолчанию: 25 секунд (обеспечивает NAT traversal для мобильных клиентов)
+- Шифр: ChaCha20-Poly1305 (стандарт WireGuard, не настраивается)
+
+## Лицензия
+
+**Примечание:** Программные компоненты внутри предсобранного образа (такие как WireGuard tools и wireguard-go) распространяются под соответствующими лицензиями, выбранными их правообладателями. При использовании любого предсобранного образа пользователь несёт ответственность за соблюдение всех соответствующих лицензий на программное обеспечение, содержащееся в образе.
+
+Copyright (C) 2026 Lin Song
+Эта работа распространяется под [лицензией MIT](https://opensource.org/licenses/MIT).
+
+Этот проект частично основан на работе [Nyr и участников проекта](https://github.com/Nyr/wireguard-install), распространяемой под [лицензией MIT](https://github.com/Nyr/wireguard-install/blob/master/LICENSE).
