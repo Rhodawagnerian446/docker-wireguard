@@ -14,7 +14,7 @@ A Docker image to run a WireGuard VPN server. Based on Alpine Linux with WireGua
 - Persistent data via a Docker volume
 - Multi-arch: `linux/amd64`, `linux/arm64`, `linux/arm/v7`
 
-**Also available:** [OpenVPN server on Docker](https://github.com/hwdsl2/docker-openvpn) | [IPsec VPN server on Docker](https://github.com/hwdsl2/docker-ipsec-vpn-server).
+**Also available:** Docker images for [OpenVPN](https://github.com/hwdsl2/docker-openvpn), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server), and [Headscale](https://github.com/hwdsl2/docker-headscale).
 
 ## Quick Start
 

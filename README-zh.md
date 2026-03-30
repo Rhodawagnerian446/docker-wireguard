@@ -14,7 +14,7 @@
 - 使用 Docker 卷实现数据持久化
 - 多架构支持：`linux/amd64`、`linux/arm64`、`linux/arm/v7`
 
-**另提供：** [OpenVPN server on Docker](https://github.com/hwdsl2/docker-openvpn/blob/main/README-zh.md) | [IPsec VPN server on Docker](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-zh.md)。
+**另提供：** [OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-zh.md)、[IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-zh.md) 和 [Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-zh.md) 的 Docker 镜像。
 
 ## 快速开始
 
