@@ -52,6 +52,8 @@ docker cp wireguard:/etc/wireguard/clients/client.conf .
 
 將 `client.conf` 匯入任意 WireGuard 客戶端即可連線。
 
+另外，你也可以在不使用 Docker 的情況下[安裝 WireGuard VPN](https://github.com/hwdsl2/wireguard-install/blob/master/README-zh-Hant.md)。若要了解更多關於如何使用本映像檔的資訊，請繼續閱讀以下部分。
+
 ## 系統需求
 
 - 具有公用 IP 位址或 DNS 名稱的 Linux 伺服器
@@ -75,22 +77,6 @@ docker image tag quay.io/hwdsl2/wireguard-server hwdsl2/wireguard-server
 ```
 
 支援平台：`linux/amd64`、`linux/arm64` 和 `linux/arm/v7`。
-
-## 更新 Docker 映像檔
-
-要更新 Docker 映像檔和容器，請先[下載](#下載)最新版本：
-
-```bash
-docker pull hwdsl2/wireguard-server
-```
-
-如果 Docker 映像檔已是最新版本，將顯示：
-
-```
-Status: Image is up to date for hwdsl2/wireguard-server:latest
-```
-
-否則將下載最新版本。依照[快速開始](#快速開始)中的說明刪除並重新建立容器。資料保存在 `wireguard-data` 卷中。
 
 ## 環境變數
 
@@ -226,6 +212,22 @@ cp vpn.env.example vpn.env
 docker compose up -d
 docker logs wireguard
 ```
+
+## 更新 Docker 映像檔
+
+要更新 Docker 映像檔和容器，請先[下載](#下載)最新版本：
+
+```bash
+docker pull hwdsl2/wireguard-server
+```
+
+如果 Docker 映像檔已是最新版本，將顯示：
+
+```
+Status: Image is up to date for hwdsl2/wireguard-server:latest
+```
+
+否則將下載最新版本。依照[快速開始](#快速開始)中的說明刪除並重新建立容器。資料保存在 `wireguard-data` 卷中。
 
 ## 技術細節
 

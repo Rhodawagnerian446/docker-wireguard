@@ -52,6 +52,8 @@ docker cp wireguard:/etc/wireguard/clients/client.conf .
 
 Импортируйте `client.conf` в любой клиент WireGuard для подключения.
 
+В качестве альтернативы вы можете [настроить WireGuard VPN без Docker](https://github.com/hwdsl2/wireguard-install/blob/master/README-ru.md). Чтобы узнать больше о том, как использовать этот образ, прочитайте разделы ниже.
+
 ## Требования
 
 - Linux-сервер с публичным IP-адресом или DNS-именем
@@ -75,22 +77,6 @@ docker image tag quay.io/hwdsl2/wireguard-server hwdsl2/wireguard-server
 ```
 
 Поддерживаемые платформы: `linux/amd64`, `linux/arm64` и `linux/arm/v7`.
-
-## Обновление Docker-образа
-
-Для обновления Docker-образа и контейнера сначала [загрузите](#загрузка) последнюю версию:
-
-```bash
-docker pull hwdsl2/wireguard-server
-```
-
-Если Docker-образ уже актуален, вы увидите:
-
-```
-Status: Image is up to date for hwdsl2/wireguard-server:latest
-```
-
-В противном случае будет загружена последняя версия. Удалите и пересоздайте контейнер, следуя инструкциям из раздела [Быстрый старт](#быстрый-старт). Ваши данные сохранены в volume `wireguard-data`.
 
 ## Переменные окружения
 
@@ -226,6 +212,22 @@ cp vpn.env.example vpn.env
 docker compose up -d
 docker logs wireguard
 ```
+
+## Обновление Docker-образа
+
+Для обновления Docker-образа и контейнера сначала [загрузите](#загрузка) последнюю версию:
+
+```bash
+docker pull hwdsl2/wireguard-server
+```
+
+Если Docker-образ уже актуален, вы увидите:
+
+```
+Status: Image is up to date for hwdsl2/wireguard-server:latest
+```
+
+В противном случае будет загружена последняя версия. Удалите и пересоздайте контейнер, следуя инструкциям из раздела [Быстрый старт](#быстрый-старт). Ваши данные сохранены в volume `wireguard-data`.
 
 ## Технические детали
 

@@ -16,7 +16,7 @@ A Docker image to run a WireGuard VPN server. Based on Alpine Linux with WireGua
 
 **Also available:** Docker images for [OpenVPN](https://github.com/hwdsl2/docker-openvpn), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server), and [Headscale](https://github.com/hwdsl2/docker-headscale).
 
-## Quick Start
+## Quick start
 
 **Step 1.** Start the WireGuard server:
 
@@ -52,6 +52,8 @@ docker cp wireguard:/etc/wireguard/clients/client.conf .
 
 Import `client.conf` into any WireGuard client to connect.
 
+Alternatively, you may [set up WireGuard VPN without Docker](https://github.com/hwdsl2/wireguard-install). To learn more about how to use this image, read the sections below.
+
 ## Requirements
 
 - A Linux server with a public IP address or DNS name
@@ -76,23 +78,7 @@ docker image tag quay.io/hwdsl2/wireguard-server hwdsl2/wireguard-server
 
 Supported platforms: `linux/amd64`, `linux/arm64` and `linux/arm/v7`.
 
-## Update Docker Image
-
-To update the Docker image and container, first [download](#download) the latest version:
-
-```bash
-docker pull hwdsl2/wireguard-server
-```
-
-If the Docker image is already up to date, you should see:
-
-```
-Status: Image is up to date for hwdsl2/wireguard-server:latest
-```
-
-Otherwise, it will download the latest version. Remove and re-create the container using instructions from [Quick Start](#quick-start). Your data is preserved in the `wireguard-data` volume.
-
-## Environment Variables
+## Environment variables
 
 All variables are optional. If not set, secure defaults are used automatically.
 
@@ -127,7 +113,7 @@ docker run \
     hwdsl2/wireguard-server
 ```
 
-## Client Management
+## Client management
 
 Use `docker exec` to manage clients with the `wg_manage` helper script.
 
@@ -164,7 +150,7 @@ docker exec -it wireguard wg_manage --removeclient alice
 docker exec wireguard wg_manage --removeclient alice -y
 ```
 
-## Kernel Module vs. Userspace
+## Kernel module vs. userspace
 
 This image supports two WireGuard backends, selected automatically at startup:
 
@@ -185,7 +171,7 @@ sudo modprobe wireguard
 
 The `--cap-add=SYS_MODULE` flag in the `docker run` command allows the container to load the kernel module. If the module is already loaded on the host, `SYS_MODULE` is not strictly required.
 
-## Persistent Data
+## Persistent data
 
 All server and client data is stored in the Docker volume (`/etc/wireguard` inside the container):
 
@@ -199,7 +185,7 @@ All server and client data is stored in the Docker volume (`/etc/wireguard` insi
 
 Back up the Docker volume to preserve your server keys and all client configurations.
 
-## IPv6 Support
+## IPv6 support
 
 If the Docker host has a public (global unicast) IPv6 address and the requirements below are met, IPv6 support is automatically enabled when the container starts. No manual configuration is needed.
 
@@ -227,7 +213,23 @@ docker compose up -d
 docker logs wireguard
 ```
 
-## Technical Details
+## Update Docker image
+
+To update the Docker image and container, first [download](#download) the latest version:
+
+```bash
+docker pull hwdsl2/wireguard-server
+```
+
+If the Docker image is already up to date, you should see:
+
+```
+Status: Image is up to date for hwdsl2/wireguard-server:latest
+```
+
+Otherwise, it will download the latest version. Remove and re-create the container using instructions from [Quick start](#quick-start). Your data is preserved in the `wireguard-data` volume.
+
+## Technical details
 
 - Base image: `alpine:3.23`
 - WireGuard: latest `wireguard-tools` from Alpine packages
