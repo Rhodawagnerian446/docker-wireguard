@@ -244,7 +244,7 @@ Otherwise, it will download the latest version. Remove and re-create the contain
 
 **Note:** The software components inside the pre-built image (such as WireGuard tools and wireguard-go) are under the respective licenses chosen by their respective copyright holders. As for any pre-built image usage, it is the image user's responsibility to ensure that any use of this image complies with any relevant licenses for all software contained within.
 
-Copyright (C) 2026 Lin Song
+Copyright (C) 2026 Lin Song   
 This work is licensed under the [MIT License](https://opensource.org/licenses/MIT).
 
 This project is based in part on the work of [Nyr and contributors](https://github.com/Nyr/wireguard-install), licensed under the [MIT License](https://github.com/Nyr/wireguard-install/blob/master/LICENSE).

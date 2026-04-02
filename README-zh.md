@@ -244,7 +244,7 @@ Status: Image is up to date for hwdsl2/wireguard-server:latest
 
 **注：** 预构建镜像中的软件组件（如 WireGuard 工具和 wireguard-go）遵循各自版权持有者所选择的相应许可证。对于任何预构建镜像的使用，镜像用户有责任确保其使用符合镜像中所包含的所有软件的相关许可证。
 
-Copyright (C) 2026 Lin Song
-本作品依据[MIT 许可证](https://opensource.org/licenses/MIT)授权。
+Copyright (C) 2026 Lin Song   
+本作品依据 [MIT 许可证](https://opensource.org/licenses/MIT)授权。
 
 本项目部分基于 [Nyr 和贡献者](https://github.com/Nyr/wireguard-install)的工作，遵循 [MIT 许可证](https://github.com/Nyr/wireguard-install/blob/master/LICENSE)。

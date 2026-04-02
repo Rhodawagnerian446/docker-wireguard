@@ -244,7 +244,7 @@ Status: Image is up to date for hwdsl2/wireguard-server:latest
 
 **Примечание:** Программные компоненты внутри предсобранного образа (такие как WireGuard tools и wireguard-go) распространяются под соответствующими лицензиями, выбранными их правообладателями. При использовании любого предсобранного образа пользователь несёт ответственность за соблюдение всех соответствующих лицензий на программное обеспечение, содержащееся в образе.
 
-Copyright (C) 2026 Lin Song
+Copyright (C) 2026 Lin Song   
 Эта работа распространяется под [лицензией MIT](https://opensource.org/licenses/MIT).
 
 Этот проект частично основан на работе [Nyr и участников проекта](https://github.com/Nyr/wireguard-install), распространяемой под [лицензией MIT](https://github.com/Nyr/wireguard-install/blob/master/LICENSE).
