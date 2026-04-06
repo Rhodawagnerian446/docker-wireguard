@@ -38,9 +38,9 @@ jobs:
           if [ "$TEST_ID" = "with-env" ]; then
             docker run \
               --name "$TEST_ID" \
-              --env-file ./vpn.env.example \
               --restart=always \
               -v wireguard-test-data:/etc/wireguard \
+              -v ./vpn.env.example:/vpn.env:ro \
               -p 51820:51820/udp \
               -d --cap-add=NET_ADMIN \
               --cap-add=SYS_MODULE \
