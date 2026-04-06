@@ -14,7 +14,7 @@ A Docker image to run a WireGuard VPN server. Based on Alpine Linux with WireGua
 - Persistent data via a Docker volume
 - Multi-arch: `linux/amd64`, `linux/arm64`, `linux/arm/v7`
 
-**Also available:** Docker images for [LiteLLM](https://github.com/hwdsl2/docker-litellm), [OpenVPN](https://github.com/hwdsl2/docker-openvpn), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server) and [Headscale](https://github.com/hwdsl2/docker-headscale).
+**Also available:** Docker images for [OpenVPN](https://github.com/hwdsl2/docker-openvpn), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server), [Headscale](https://github.com/hwdsl2/docker-headscale) and [LiteLLM](https://github.com/hwdsl2/docker-litellm).
 
 ## Quick start
 
@@ -94,16 +94,16 @@ This Docker image uses the following variables, that can be declared in an `env`
 | `VPN_DNS_SRV1` | Primary DNS server pushed to clients | `8.8.8.8` |
 | `VPN_DNS_SRV2` | Secondary DNS server pushed to clients | `8.8.4.4` |
 
-**Note:** In your `env` file, DO NOT put `""` or `''` around values, or add space around `=`. If you change `VPN_PORT`, update the `-p` flag in the `docker run` command accordingly.
+**Note:** In your `env` file, you may enclose values in single quotes, e.g. `VAR='value'`. Do not add spaces around `=`. If you change `VPN_PORT`, update the `-p` flag in the `docker run` command accordingly.
 
 Example using an `env` file:
 
 ```bash
 docker run \
     --name wireguard \
-    --env-file ./vpn.env \
     --restart=always \
     -v wireguard-data:/etc/wireguard \
+    -v ./vpn.env:/vpn.env:ro \
     -p 51820:51820/udp \
     -d --cap-add=NET_ADMIN \
     --cap-add=SYS_MODULE \
@@ -112,6 +112,8 @@ docker run \
     --sysctl net.ipv6.conf.all.forwarding=1 \
     hwdsl2/wireguard-server
 ```
+
+The env file is bind-mounted into the container, so changes are picked up on every restart without recreating the container.
 
 ## Client management
 
@@ -220,13 +222,12 @@ services:
   wireguard:
     image: hwdsl2/wireguard-server
     container_name: wireguard
-    env_file:
-      - ./vpn.env
     restart: always
     ports:
       - "51820:51820/udp"
     volumes:
       - wireguard-data:/etc/wireguard
+      - ./vpn.env:/vpn.env:ro
     cap_add:
       - NET_ADMIN
       - SYS_MODULE

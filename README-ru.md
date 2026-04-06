@@ -14,7 +14,7 @@ Docker-образ для запуска сервера WireGuard VPN. Основ
 - Постоянное хранение данных через Docker volume
 - Поддержка нескольких архитектур: `linux/amd64`, `linux/arm64`, `linux/arm/v7`
 
-**Также доступно:** Docker-образы для [LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-ru.md), [OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-ru.md), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-ru.md) и [Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-ru.md).
+**Также доступно:** Docker-образы для [OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-ru.md), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-ru.md), [Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-ru.md) и [LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-ru.md).
 
 ## Быстрый старт
 
@@ -94,16 +94,16 @@ docker image tag quay.io/hwdsl2/wireguard-server hwdsl2/wireguard-server
 | `VPN_DNS_SRV1` | Основной DNS-сервер, передаваемый клиентам | `8.8.8.8` |
 | `VPN_DNS_SRV2` | Резервный DNS-сервер, передаваемый клиентам | `8.8.4.4` |
 
-**Примечание:** В файле `env` НЕ заключайте значения в `""` или `''` и не добавляйте пробелы вокруг `=`. Если вы изменили `VPN_PORT`, соответственно обновите флаг `-p` в команде `docker run`.
+**Примечание:** В файле `env` можно заключать значения в одинарные кавычки, например `VAR='значение'`. Не добавляйте пробелы вокруг `=`. Если вы изменили `VPN_PORT`, соответственно обновите флаг `-p` в команде `docker run`.
 
 Пример использования файла `env`:
 
 ```bash
 docker run \
     --name wireguard \
-    --env-file ./vpn.env \
     --restart=always \
     -v wireguard-data:/etc/wireguard \
+    -v ./vpn.env:/vpn.env:ro \
     -p 51820:51820/udp \
     -d --cap-add=NET_ADMIN \
     --cap-add=SYS_MODULE \
@@ -112,6 +112,8 @@ docker run \
     --sysctl net.ipv6.conf.all.forwarding=1 \
     hwdsl2/wireguard-server
 ```
+
+Файл env монтируется в контейнер через bind mount, поэтому изменения применяются при каждом перезапуске контейнера без его пересоздания.
 
 ## Управление клиентами
 
@@ -220,13 +222,12 @@ services:
   wireguard:
     image: hwdsl2/wireguard-server
     container_name: wireguard
-    env_file:
-      - ./vpn.env
     restart: always
     ports:
       - "51820:51820/udp"
     volumes:
       - wireguard-data:/etc/wireguard
+      - ./vpn.env:/vpn.env:ro
     cap_add:
       - NET_ADMIN
       - SYS_MODULE

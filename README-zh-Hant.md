@@ -14,7 +14,7 @@
 - 使用 Docker 卷實現資料持久化
 - 多架構支援：`linux/amd64`、`linux/arm64`、`linux/arm/v7`
 
-**另提供：** [LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh-Hant.md)、[OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-zh-Hant.md)、[IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-zh-Hant.md) 與 [Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-zh-Hant.md) 的 Docker 映像。
+**另提供：** [OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-zh-Hant.md)、[IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-zh-Hant.md)、[Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-zh-Hant.md) 與 [LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh-Hant.md) 的 Docker 映像。
 
 ## 快速開始
 
@@ -94,16 +94,16 @@ docker image tag quay.io/hwdsl2/wireguard-server hwdsl2/wireguard-server
 | `VPN_DNS_SRV1` | 推送給客戶端的主要 DNS 伺服器 | `8.8.8.8` |
 | `VPN_DNS_SRV2` | 推送給客戶端的次要 DNS 伺服器 | `8.8.4.4` |
 
-**注：** 在 `env` 檔案中，不要在值周圍加上 `""` 或 `''`，也不要在 `=` 周圍加上空格。如果修改了 `VPN_PORT`，請相應更新 `docker run` 命令中的 `-p` 參數。
+**注：** 在 `env` 檔案中，可以用單引號括住變數值，例如 `VAR='值'`。不要在 `=` 周圍加上空格。如果修改了 `VPN_PORT`，請相應更新 `docker run` 命令中的 `-p` 參數。
 
 使用 `env` 檔案的範例：
 
 ```bash
 docker run \
     --name wireguard \
-    --env-file ./vpn.env \
     --restart=always \
     -v wireguard-data:/etc/wireguard \
+    -v ./vpn.env:/vpn.env:ro \
     -p 51820:51820/udp \
     -d --cap-add=NET_ADMIN \
     --cap-add=SYS_MODULE \
@@ -112,6 +112,8 @@ docker run \
     --sysctl net.ipv6.conf.all.forwarding=1 \
     hwdsl2/wireguard-server
 ```
+
+env 檔案以綁定掛載方式掛載到容器中，因此每次重新啟動容器時都會讀取最新的變數，無需重新建立容器。
 
 ## 客戶端管理
 
@@ -220,13 +222,12 @@ services:
   wireguard:
     image: hwdsl2/wireguard-server
     container_name: wireguard
-    env_file:
-      - ./vpn.env
     restart: always
     ports:
       - "51820:51820/udp"
     volumes:
       - wireguard-data:/etc/wireguard
+      - ./vpn.env:/vpn.env:ro
     cap_add:
       - NET_ADMIN
       - SYS_MODULE

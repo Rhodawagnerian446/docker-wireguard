@@ -14,7 +14,7 @@
 - 使用 Docker 卷实现数据持久化
 - 多架构支持：`linux/amd64`、`linux/arm64`、`linux/arm/v7`
 
-**另提供：** [LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh.md)、[OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-zh.md)、[IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-zh.md) 和 [Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-zh.md) 的 Docker 镜像。
+**另提供：** [OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-zh.md)、[IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-zh.md)、[Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-zh.md) 和 [LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh.md) 的 Docker 镜像。
 
 ## 快速开始
 
@@ -94,16 +94,16 @@ docker image tag quay.io/hwdsl2/wireguard-server hwdsl2/wireguard-server
 | `VPN_DNS_SRV1` | 推送给客户端的主 DNS 服务器 | `8.8.8.8` |
 | `VPN_DNS_SRV2` | 推送给客户端的备用 DNS 服务器 | `8.8.4.4` |
 
-**注：** 在 `env` 文件中，不要在值周围添加 `""` 或 `''`，也不要在 `=` 周围添加空格。如果修改了 `VPN_PORT`，请相应更新 `docker run` 命令中的 `-p` 参数。
+**注：** 在 `env` 文件中，可以用单引号括住变量值，例如 `VAR='值'`。不要在 `=` 周围添加空格。如果修改了 `VPN_PORT`，请相应更新 `docker run` 命令中的 `-p` 参数。
 
 使用 `env` 文件的示例：
 
 ```bash
 docker run \
     --name wireguard \
-    --env-file ./vpn.env \
     --restart=always \
     -v wireguard-data:/etc/wireguard \
+    -v ./vpn.env:/vpn.env:ro \
     -p 51820:51820/udp \
     -d --cap-add=NET_ADMIN \
     --cap-add=SYS_MODULE \
@@ -112,6 +112,8 @@ docker run \
     --sysctl net.ipv6.conf.all.forwarding=1 \
     hwdsl2/wireguard-server
 ```
+
+env 文件以绑定挂载方式挂载到容器中，因此每次重启容器时都会读取最新的变量，无需重新创建容器。
 
 ## 客户端管理
 
@@ -220,13 +222,12 @@ services:
   wireguard:
     image: hwdsl2/wireguard-server
     container_name: wireguard
-    env_file:
-      - ./vpn.env
     restart: always
     ports:
       - "51820:51820/udp"
     volumes:
       - wireguard-data:/etc/wireguard
+      - ./vpn.env:/vpn.env:ro
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
