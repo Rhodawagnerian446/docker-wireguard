@@ -14,7 +14,7 @@
 - 使用 Docker 卷实现数据持久化
 - 多架构支持：`linux/amd64`、`linux/arm64`、`linux/arm/v7`
 
-**另提供：** [OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-zh.md)、[IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-zh.md) 和 [Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-zh.md) 的 Docker 镜像。
+**另提供：** [LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh.md)、[OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-zh.md)、[IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-zh.md) 和 [Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-zh.md) 的 Docker 镜像。
 
 ## 快速开始
 
@@ -213,6 +213,33 @@ docker compose up -d
 docker logs wireguard
 ```
 
+示例 `docker-compose.yml`（已包含在内）：
+
+```yaml
+services:
+  wireguard:
+    image: hwdsl2/wireguard-server
+    container_name: wireguard
+    env_file:
+      - ./vpn.env
+    restart: always
+    ports:
+      - "51820:51820/udp"
+    volumes:
+      - wireguard-data:/etc/wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
+
+volumes:
+  wireguard-data:
+```
+
 ## 更新 Docker 镜像
 
 要更新 Docker 镜像和容器，首先[下载](#下载)最新版本：
@@ -236,7 +263,7 @@ Status: Image is up to date for hwdsl2/wireguard-server:latest
 - 用户态回退：来自 Alpine 软件包的 `wireguard-go`
 - VPN 子网：`10.7.0.0/24`（服务器：`10.7.0.1`，客户端：`10.7.0.2`+）
 - IPv6 VPN 子网：`fddd:2c4:2c4:2c4::/64`（服务器有 IPv6 时启用）
-- 预共享密钥：为每个客户端生成，提供额外的后量子抵抗性
+- 预共享密钥：为每个客户端生成，提供额外的前向保密性
 - 默认 keepalive：25 秒（确保移动客户端的 NAT 穿透）
 - 加密算法：ChaCha20-Poly1305（WireGuard 默认，不可配置）
 

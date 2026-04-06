@@ -14,7 +14,7 @@ A Docker image to run a WireGuard VPN server. Based on Alpine Linux with WireGua
 - Persistent data via a Docker volume
 - Multi-arch: `linux/amd64`, `linux/arm64`, `linux/arm/v7`
 
-**Also available:** Docker images for [OpenVPN](https://github.com/hwdsl2/docker-openvpn), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server), and [Headscale](https://github.com/hwdsl2/docker-headscale).
+**Also available:** Docker images for [LiteLLM](https://github.com/hwdsl2/docker-litellm), [OpenVPN](https://github.com/hwdsl2/docker-openvpn), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server) and [Headscale](https://github.com/hwdsl2/docker-headscale).
 
 ## Quick start
 
@@ -213,6 +213,33 @@ docker compose up -d
 docker logs wireguard
 ```
 
+Example `docker-compose.yml` (already included):
+
+```yaml
+services:
+  wireguard:
+    image: hwdsl2/wireguard-server
+    container_name: wireguard
+    env_file:
+      - ./vpn.env
+    restart: always
+    ports:
+      - "51820:51820/udp"
+    volumes:
+      - wireguard-data:/etc/wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
+
+volumes:
+  wireguard-data:
+```
+
 ## Update Docker image
 
 To update the Docker image and container, first [download](#download) the latest version:
@@ -236,7 +263,7 @@ Otherwise, it will download the latest version. Remove and re-create the contain
 - Userspace fallback: `wireguard-go` from Alpine packages
 - VPN subnet: `10.7.0.0/24` (server: `10.7.0.1`, clients: `10.7.0.2`+)
 - IPv6 VPN subnet: `fddd:2c4:2c4:2c4::/64` (when server has IPv6)
-- Preshared keys: generated per client for additional post-quantum resistance
+- Preshared keys: generated per client for additional forward secrecy
 - Default keepalive: 25 seconds (ensures NAT traversal for mobile clients)
 - Cipher: ChaCha20-Poly1305 (WireGuard default, not configurable)
 

@@ -14,7 +14,7 @@ Docker-образ для запуска сервера WireGuard VPN. Основ
 - Постоянное хранение данных через Docker volume
 - Поддержка нескольких архитектур: `linux/amd64`, `linux/arm64`, `linux/arm/v7`
 
-**Также доступно:** Docker-образы для [OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-ru.md), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-ru.md) и [Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-ru.md).
+**Также доступно:** Docker-образы для [LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-ru.md), [OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-ru.md), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-ru.md) и [Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-ru.md).
 
 ## Быстрый старт
 
@@ -213,6 +213,33 @@ docker compose up -d
 docker logs wireguard
 ```
 
+Пример `docker-compose.yml` (уже включён):
+
+```yaml
+services:
+  wireguard:
+    image: hwdsl2/wireguard-server
+    container_name: wireguard
+    env_file:
+      - ./vpn.env
+    restart: always
+    ports:
+      - "51820:51820/udp"
+    volumes:
+      - wireguard-data:/etc/wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
+
+volumes:
+  wireguard-data:
+```
+
 ## Обновление Docker-образа
 
 Для обновления Docker-образа и контейнера сначала [загрузите](#загрузка) последнюю версию:
@@ -236,7 +263,7 @@ Status: Image is up to date for hwdsl2/wireguard-server:latest
 - Резервный вариант в пользовательском пространстве: `wireguard-go` из пакетов Alpine
 - Подсеть VPN: `10.7.0.0/24` (сервер: `10.7.0.1`, клиенты: `10.7.0.2`+)
 - Подсеть VPN IPv6: `fddd:2c4:2c4:2c4::/64` (при наличии IPv6 на сервере)
-- Предварительно общие ключи: генерируются для каждого клиента для дополнительной постквантовой защиты
+- Предварительно общие ключи: генерируются для каждого клиента для дополнительной прямой секретности
 - Keepalive по умолчанию: 25 секунд (обеспечивает NAT traversal для мобильных клиентов)
 - Шифр: ChaCha20-Poly1305 (стандарт WireGuard, не настраивается)
 

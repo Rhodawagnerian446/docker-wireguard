@@ -14,7 +14,7 @@
 - 使用 Docker 卷實現資料持久化
 - 多架構支援：`linux/amd64`、`linux/arm64`、`linux/arm/v7`
 
-**另提供：** [OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-zh-Hant.md)、[IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-zh-Hant.md) 與 [Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-zh-Hant.md) 的 Docker 映像。
+**另提供：** [LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh-Hant.md)、[OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-zh-Hant.md)、[IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-zh-Hant.md) 與 [Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-zh-Hant.md) 的 Docker 映像。
 
 ## 快速開始
 
@@ -213,6 +213,33 @@ docker compose up -d
 docker logs wireguard
 ```
 
+範例 `docker-compose.yml`（已包含在內）：
+
+```yaml
+services:
+  wireguard:
+    image: hwdsl2/wireguard-server
+    container_name: wireguard
+    env_file:
+      - ./vpn.env
+    restart: always
+    ports:
+      - "51820:51820/udp"
+    volumes:
+      - wireguard-data:/etc/wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
+
+volumes:
+  wireguard-data:
+```
+
 ## 更新 Docker 映像檔
 
 要更新 Docker 映像檔和容器，請先[下載](#下載)最新版本：
@@ -236,7 +263,7 @@ Status: Image is up to date for hwdsl2/wireguard-server:latest
 - 用戶空間退回方案：來自 Alpine 套件的 `wireguard-go`
 - VPN 子網路：`10.7.0.0/24`（伺服器：`10.7.0.1`，客戶端：`10.7.0.2`+）
 - IPv6 VPN 子網路：`fddd:2c4:2c4:2c4::/64`（伺服器有 IPv6 時啟用）
-- 預共用金鑰：為每個客戶端產生，提供額外的後量子抵抗性
+- 預共用金鑰：為每個客戶端產生，提供額外的前向保密性
 - 預設 keepalive：25 秒（確保行動客戶端的 NAT 穿透）
 - 加密演算法：ChaCha20-Poly1305（WireGuard 預設，不可設定）
 
