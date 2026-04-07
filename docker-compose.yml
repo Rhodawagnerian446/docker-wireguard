@@ -16,6 +16,19 @@ services:
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv6.conf.all.forwarding=1
+    # To enable IPv6 support for WireGuard clients, the Docker host must have a
+    # public IPv6 address. Uncomment the network section below and configure
+    # IPv6 in your Docker daemon (set "ipv6": true and "fixed-cidr-v6" in
+    # /etc/docker/daemon.json), then re-create this container.
+    # networks:
+    #   vpnnet:
 
 volumes:
   wireguard-data:
+
+# networks:
+#   vpnnet:
+#     enable_ipv6: true
+#     ipam:
+#       config:
+#         - subnet: fddd:1::/64
