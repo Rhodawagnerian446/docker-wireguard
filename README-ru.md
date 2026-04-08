@@ -14,7 +14,7 @@ Docker-образ для запуска сервера WireGuard VPN. Основ
 - Постоянное хранение данных через Docker volume
 - Поддержка нескольких архитектур: `linux/amd64`, `linux/arm64`, `linux/arm/v7`
 
-**Также доступно:** Docker-образы для [OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-ru.md), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-ru.md), [Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-ru.md) и [LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-ru.md).
+**Также доступно:** Docker-образы для [OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-ru.md), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-ru.md), [Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-ru.md), [LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-ru.md) и [Whisper](https://github.com/hwdsl2/docker-whisper/blob/main/README-ru.md).
 
 ## Быстрый старт
 
