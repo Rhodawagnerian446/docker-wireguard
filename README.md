@@ -4,17 +4,24 @@
 
 [![Build Status](https://github.com/hwdsl2/docker-wireguard/actions/workflows/main.yml/badge.svg)](https://github.com/hwdsl2/docker-wireguard/actions/workflows/main.yml) &nbsp;[![License: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
 
-A Docker image to run a WireGuard VPN server. Based on Alpine Linux with WireGuard. Designed to be simple, modern, and maintainable.
+Docker image to run a WireGuard VPN server. Based on Alpine Linux with WireGuard. Designed to be simple, modern, and maintainable.
+
+**Features:**
 
 - Automatically generates server keys and a client config on first start
 - Client management via a helper script (`wg_manage`)
 - QR code displayed on first start for easy mobile setup
 - Supports kernel WireGuard (5.6+) with automatic fallback to `wireguard-go` (userspace)
-- IPv6 support when the server has a public IPv6 address (see [requirements](#ipv6-support))
+- Dual-stack IPv4 and IPv6 support for VPN clients
+- Automatically built and published via [GitHub Actions](https://github.com/hwdsl2/docker-wireguard/actions/workflows/main.yml)
 - Persistent data via a Docker volume
 - Multi-arch: `linux/amd64`, `linux/arm64`, `linux/arm/v7`
 
-**Also available:** Docker images for [OpenVPN](https://github.com/hwdsl2/docker-openvpn), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server), [Headscale](https://github.com/hwdsl2/docker-headscale), [LiteLLM](https://github.com/hwdsl2/docker-litellm) and [Whisper](https://github.com/hwdsl2/docker-whisper).
+**Also available:**
+
+- Without Docker: [WireGuard install script](https://github.com/hwdsl2/wireguard-install)
+- VPN: [OpenVPN](https://github.com/hwdsl2/docker-openvpn), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server), [Headscale](https://github.com/hwdsl2/docker-headscale)
+- AI/Audio: [Whisper (STT)](https://github.com/hwdsl2/docker-whisper), [Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro), [Embeddings](https://github.com/hwdsl2/docker-embeddings), [LiteLLM](https://github.com/hwdsl2/docker-litellm)
 
 ## Quick start
 
